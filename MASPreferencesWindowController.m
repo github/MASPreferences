@@ -5,6 +5,8 @@ NSString *const kMASPreferencesWindowControllerDidChangeViewNotification = @"MAS
 static NSString *const kMASPreferencesFrameTopLeftKey = @"MASPreferences Frame Top Left";
 static NSString *const kMASPreferencesSelectedViewKey = @"MASPreferences Selected Identifier View";
 
+static void * MASPreferencesToolbarItemIdentifierKey = &MASPreferencesToolbarItemIdentifierKey;
+
 static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
 {
     return [NSString stringWithFormat:@"MASPreferences %@ Frame", identifier];
@@ -26,6 +28,7 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
 @synthesize viewControllers = _viewControllers;
 @synthesize selectedViewController = _selectedViewController;
 @synthesize title = _title;
+@synthesize toolbarItemSize = _toolbarItemSize;
 
 #pragma mark -
 
@@ -41,6 +44,7 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
         _viewControllers = [viewControllers retain];
         _minimumViewRects = [[NSMutableDictionary alloc] init];
         _title = [title copy];
+        _toolbarItemSize = NSZeroSize;
     }
     return self;
 }
@@ -155,15 +159,37 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
     if (controllerIndex != NSNotFound)
     {
         id <MASPreferencesViewController> controller = [_viewControllers objectAtIndex:controllerIndex];
-        if ([controller respondsToSelector:@selector(toolbarItemView)]) {
-            toolbarItem.view = controller.toolbarItemView;
-        } else {
-            NSAssert([controller respondsToSelector:@selector(toolbarItemImage)], @"%@ Must implement toolbarItemImage or toolbarItemView", controller);
-            toolbarItem.image = controller.toolbarItemImage;
+
+        // NSToolbarItem target and actions are forwarded to a custom NSView (when present).
+        NSRect buttonFrame = { .origin = NSZeroPoint, .size = self.toolbarItemSize };
+
+        NSMutableParagraphStyle *paragraphStyle = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
+        paragraphStyle.alignment = NSCenterTextAlignment;
+        NSShadow *whiteShadow = [NSShadow shadowWithRadius:1 offset:CGSizeMake(0, -0.5) color:[NSColor whiteColor]];
+        NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:[NSFont systemFontOfSize:[NSFont smallSystemFontSize]], NSFontAttributeName, [NSColor colorWithCalibratedWhite:0.2 alpha:1.0], NSForegroundColorAttributeName, whiteShadow, NSShadowAttributeName, paragraphStyle, NSParagraphStyleAttributeName, nil];
+
+        NSAttributedString *attributedTitle = [[[NSAttributedString alloc] initWithString:controller.toolbarItemLabel attributes:attributes] autorelease];
+
+        // Add height for the title
+        buttonFrame.size.height += attributedTitle.size.height;
+        buttonFrame.size.width = MAX(attributedTitle.size.width, buttonFrame.size.width);
+        
+        NSButton *button = [[[NSButton alloc] initWithFrame:buttonFrame] autorelease];
+        button.image = controller.toolbarItemImage;
+        button.imagePosition = NSImageAbove;
+        button.buttonType = NSMomentaryChangeButton;
+        button.bordered = NO;
+        button.attributedTitle = attributedTitle;
+
+        if (NSEqualSizes(self.toolbarItemSize, NSZeroSize)) {
+            [button sizeToFit];
         }
-        toolbarItem.label = controller.toolbarItemLabel;
-        toolbarItem.target = self;
-        toolbarItem.action = @selector(toolbarItemDidClick:);
+        
+        objc_setAssociatedObject(button, MASPreferencesToolbarItemIdentifierKey, itemIdentifier, OBJC_ASSOCIATION_COPY_NONATOMIC);
+        
+        button.target = self;
+        button.action = @selector(toolbarItemDidClick:);
+        toolbarItem.view = button;
     }
     return [toolbarItem autorelease];
 }
@@ -293,8 +319,10 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
 
 - (void)toolbarItemDidClick:(id)sender
 {
-    if ([sender respondsToSelector:@selector(itemIdentifier)])
-        self.selectedViewController = [self viewControllerForIdentifier:[sender itemIdentifier]];
+    NSString *itemIdentifier = objc_getAssociatedObject(sender, MASPreferencesToolbarItemIdentifierKey);
+    if (itemIdentifier == nil) return;
+
+    self.selectedViewController = [self viewControllerForIdentifier:itemIdentifier];
 }
 
 #pragma mark -

@@ -30,6 +30,12 @@ __attribute__((__visibility__("default")))
 @property (nonatomic, readonly, retain) NSViewController <MASPreferencesViewController> *selectedViewController;
 @property (nonatomic, readonly) NSString *title;
 
+// The size for each toolbar item.
+//
+// If NSZeroSize, default NSToolbar fitting behaviour will be used (ie. sizeToFit).
+// The default value is NSZeroSize
+@property (nonatomic, assign) NSSize toolbarItemSize;
+
 - (id)initWithViewControllers:(NSArray *)viewControllers;
 - (id)initWithViewControllers:(NSArray *)viewControllers title:(NSString *)title;
 

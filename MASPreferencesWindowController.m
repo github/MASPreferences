@@ -1,4 +1,5 @@
 #import "MASPreferencesWindowController.h"
+#import <objc/runtime.h>
 
 NSString *const kMASPreferencesWindowControllerDidChangeViewNotification = @"MASPreferencesWindowControllerDidChangeViewNotification";
 

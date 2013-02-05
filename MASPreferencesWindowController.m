@@ -276,6 +276,7 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
     [[NSUserDefaults standardUserDefaults] setObject:controller.identifier forKey:kMASPreferencesSelectedViewKey];
     
     NSView *controllerView = controller.view;
+    controllerView.translatesAutoresizingMaskIntoConstraints = YES;
 
     // Retrieve current and minimum frame size for the view
     NSString *oldViewRectString = [[NSUserDefaults standardUserDefaults] stringForKey:PreferencesKeyForViewBounds(controller.identifier)];

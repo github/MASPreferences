@@ -23,6 +23,7 @@ __attribute__((__visibility__("default")))
     NSMutableDictionary *_minimumViewRects;
     NSString *_title;
     NSViewController <MASPreferencesViewController> *_selectedViewController;
+    NSSize _toolbarItemSize;
 }
 
 @property (nonatomic, readonly) NSArray *viewControllers;

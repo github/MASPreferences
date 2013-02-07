@@ -277,6 +277,7 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
     
     NSView *controllerView = controller.view;
     controllerView.translatesAutoresizingMaskIntoConstraints = YES;
+    [controllerView layoutSubtreeIfNeeded];
 
     // Retrieve current and minimum frame size for the view
     NSString *oldViewRectString = [[NSUserDefaults standardUserDefaults] stringForKey:PreferencesKeyForViewBounds(controller.identifier)];

@@ -8,11 +8,6 @@ static NSString *const kMASPreferencesSelectedViewKey = @"MASPreferences Selecte
 
 static void * MASPreferencesToolbarItemIdentifierKey = &MASPreferencesToolbarItemIdentifierKey;
 
-static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
-{
-    return [NSString stringWithFormat:@"MASPreferences %@ Frame", identifier];
-}
-
 @interface MASPreferencesWindowController () // Private
 
 - (NSViewController <MASPreferencesViewController> *)viewControllerForIdentifier:(NSString *)identifier;
@@ -77,8 +72,7 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
     if (origin)
         [self.window setFrameTopLeftPoint:NSPointFromString(origin)];
 
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidMove:)   name:NSWindowDidMoveNotification object:self.window];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidResize:) name:NSWindowDidResizeNotification object:self.window];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidMove:) name:NSWindowDidMoveNotification object:self.window];
 }
 
 - (NSViewController <MASPreferencesViewController> *)firstViewController {
@@ -100,13 +94,6 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
 - (void)windowDidMove:(NSNotification*)aNotification
 {
     [[NSUserDefaults standardUserDefaults] setObject:NSStringFromPoint(NSMakePoint(NSMinX([self.window frame]), NSMaxY([self.window frame]))) forKey:kMASPreferencesFrameTopLeftKey];
-}
-
-- (void)windowDidResize:(NSNotification*)aNotification
-{
-    NSViewController <MASPreferencesViewController> *viewController = self.selectedViewController;
-    if (viewController)
-        [[NSUserDefaults standardUserDefaults] setObject:NSStringFromRect([viewController.view bounds]) forKey:PreferencesKeyForViewBounds(viewController.identifier)];
 }
 
 #pragma mark -
@@ -280,29 +267,15 @@ static NSString *const PreferencesKeyForViewBounds (NSString *identifier)
     controllerView.translatesAutoresizingMaskIntoConstraints = YES;
     [controllerView layoutSubtreeIfNeeded];
 
-    // Retrieve current and minimum frame size for the view
-    NSString *oldViewRectString = [[NSUserDefaults standardUserDefaults] stringForKey:PreferencesKeyForViewBounds(controller.identifier)];
-    NSString *minViewRectString = [_minimumViewRects objectForKey:controller.identifier];
-    if (!minViewRectString)
-        [_minimumViewRects setObject:NSStringFromRect(controllerView.bounds) forKey:controller.identifier];
-    BOOL sizableWidth  = [controllerView autoresizingMask] & NSViewWidthSizable;
-    BOOL sizableHeight = [controllerView autoresizingMask] & NSViewHeightSizable;
-    NSRect oldViewRect = oldViewRectString ? NSRectFromString(oldViewRectString) : controllerView.bounds;
-    NSRect minViewRect = minViewRectString ? NSRectFromString(minViewRectString) : controllerView.bounds;
-    oldViewRect.size.width  = NSWidth(oldViewRect)  < NSWidth(minViewRect)  || !sizableWidth  ? NSWidth(minViewRect)  : NSWidth(oldViewRect);
-    oldViewRect.size.height = NSHeight(oldViewRect) < NSHeight(minViewRect) || !sizableHeight ? NSHeight(minViewRect) : NSHeight(oldViewRect);
-
-    [controllerView setFrame:oldViewRect];
-
     // Calculate new window size and position
     NSRect oldFrame = [self.window frame];
-    NSRect newFrame = [self.window frameRectForContentRect:oldViewRect];
+    NSRect newFrame = [self.window frameRectForContentRect:controllerView.bounds];
     newFrame = NSOffsetRect(newFrame, NSMinX(oldFrame), NSMaxY(oldFrame) - NSMaxY(newFrame));
 
     // Setup min/max sizes and show/hide resize indicator
-    [self.window setContentMinSize:minViewRect.size];
-    [self.window setContentMaxSize:NSMakeSize(sizableWidth ? CGFLOAT_MAX : NSWidth(oldViewRect), sizableHeight ? CGFLOAT_MAX : NSHeight(oldViewRect))];
-    [self.window setShowsResizeIndicator:sizableWidth || sizableHeight];
+    [self.window setContentMinSize:newFrame.size];
+    [self.window setContentMaxSize:newFrame.size];
+    [self.window setShowsResizeIndicator:NO];
 
     [self.window setFrame:newFrame display:YES animate:[self.window isVisible]];
     
